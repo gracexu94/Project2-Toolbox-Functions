@@ -37,12 +37,16 @@ function onLoad(framework) {
     var objLoader = new THREE.OBJLoader();
     objLoader.load('/geo/feather.obj', function(obj) {
 
-        // LOOK: This function runs after the obj has finished loading
-        var featherGeo = obj.children[0].geometry;
+        for (var i = 0; i < 20; i++) {
+            // LOOK: This function runs after the obj has finished loading
+            var featherGeo = obj.children[0].geometry;
 
-        var featherMesh = new THREE.Mesh(featherGeo, lambertWhite);
-        featherMesh.name = "feather";
-        scene.add(featherMesh);
+            var featherMesh = new THREE.Mesh(featherGeo, lambertWhite);
+            featherMesh.name = "feather" + i;
+            scene.add(featherMesh);
+            var feather = framework.scene.getObjectByName(featherMesh.name);
+            feather.rotateY(i);  
+        }
     });
 
     // set camera position
