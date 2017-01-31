@@ -65,7 +65,7 @@ function onUpdate(framework) {
     if (feather !== undefined) {
         // Simply flap wing
         var date = new Date();
-        feather.rotateZ(Math.sin(date.getTime() / 100) * 2 * Math.PI / 180);        
+        //feather.rotateZ(Math.sin(date.getTime() / 100) * 2 * Math.PI / 180);        
     }
 }
 
