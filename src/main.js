@@ -21,8 +21,15 @@ function degreesToRads(degrees) {
 var xAxis = new THREE.Vector3(1,0,0);
 var yAxis = new THREE.Vector3(0,1,0);
 var zAxis = new THREE.Vector3(0,0,1);
-var numFeathers = 45;
-var windForce = {windStrength: 3.0};
+var guiVars = {numFeathers: 45, 
+            windStrength: 3.0, 
+            featherSize: 1.0, 
+            featherColorR_start: 0.0,
+            featherColorG_start: 1.0,
+            featherColorB_start: 1.0,
+            featherColorR_end: 1.0,
+            featherColorG_end: 1.0,
+            featherColorB_end: 1.0  };
 
 // called after the scene loads
 function onLoad(framework) {
@@ -60,7 +67,7 @@ function onLoad(framework) {
     );
 
     var rightWingGeom = new THREE.Geometry();
-    rightWingGeom.vertices = rightWing.getPoints(numFeathers);
+    rightWingGeom.vertices = rightWing.getPoints(guiVars.numFeathers);
     var rightWingObject = new THREE.Line(rightWingGeom, lineMaterial);
     rightWingObject.name = "rightWingCurve";
     scene.add(rightWingObject);
@@ -74,13 +81,13 @@ function onLoad(framework) {
     );
 
     var leftWingGeom = new THREE.Geometry();
-    leftWingGeom.vertices = leftWing.getPoints(numFeathers);
+    leftWingGeom.vertices = leftWing.getPoints(guiVars.numFeathers);
 
     var leftWingObject = new THREE.Line(leftWingGeom, lineMaterial);
     leftWingObject.name = "leftWingCurve";
     scene.add(leftWingObject);
 
-    createWings(numFeathers, scene, rightWingObject, leftWingObject);
+    createWings(scene, rightWingObject, leftWingObject);
 
     // set camera position
     camera.position.set(0, 1, 5);
@@ -92,13 +99,45 @@ function onLoad(framework) {
     gui.add(camera, 'fov', 0, 180).onChange(function(newVal) {
         camera.updateProjectionMatrix();
     });
-    gui.add(windForce, 'windStrength', 0, 20).onChange(function(newVal) {
-        
+    gui.add(guiVars, 'windStrength', 0, 20).onChange(function(newVal) {});
+    gui.add(guiVars, 'numFeathers', 20, 100).onChange(function(newVal) {
+        removeWings(framework.scene);
+        rightWingObject.geometry.vertices = rightWing.getPoints(newVal);
+        leftWingObject.geometry.vertices = leftWing.getPoints(newVal);
+        createWings(framework.scene, rightWingObject, leftWingObject);
+    });
+    gui.add(guiVars, 'featherSize', 0.5, 3.0).onChange(function(newVal) {
+        removeWings(framework.scene);
+        createWings(framework.scene, rightWingObject, leftWingObject);
+    });
+    gui.add(guiVars, 'featherColorR_start', 0.0, 1.0).onChange(function(newVal) {
+        removeWings(framework.scene);
+        createWings(framework.scene, rightWingObject, leftWingObject);
+    });
+    gui.add(guiVars, 'featherColorR_end', 0.0, 1.0).onChange(function(newVal) {
+        removeWings(framework.scene);
+        createWings(framework.scene, rightWingObject, leftWingObject);
+    });
+    gui.add(guiVars, 'featherColorG_start', 0.0, 1.0).onChange(function(newVal) {
+        removeWings(framework.scene);
+        createWings(framework.scene, rightWingObject, leftWingObject);
+    });
+    gui.add(guiVars, 'featherColorG_end', 0.0, 1.0).onChange(function(newVal) {
+        removeWings(framework.scene);
+        createWings(framework.scene, rightWingObject, leftWingObject);
+    });
+    gui.add(guiVars, 'featherColorB_start', 0.0, 1.0).onChange(function(newVal) {
+        removeWings(framework.scene);
+        createWings(framework.scene, rightWingObject, leftWingObject);
+    });
+    gui.add(guiVars, 'featherColorB_end', 0.0, 1.0).onChange(function(newVal) {
+        removeWings(framework.scene);
+        createWings(framework.scene, rightWingObject, leftWingObject);
     });
 }
 
-function removeWings(numFeathers, scene) {
-    for (var i = 0; i < numFeathers; i++) {
+function removeWings(scene) {
+    for (var i = 0; i < guiVars.numFeathers; i++) {
         var rightFeather = scene.getObjectByName("rightFeather"+i);
         scene.remove(rightFeather);
         var leftFeather = scene.getObjectByName("leftFeather"+i);
@@ -106,18 +145,21 @@ function removeWings(numFeathers, scene) {
     }
 }
 
-function createWings(numFeathers, scene, rightWingObject, leftWingObject) {
+function createWings(scene, rightWingObject, leftWingObject) {
     // load a simple obj mesh multiple times to create the feathers for the wings
     var objLoader = new THREE.OBJLoader();
+    var numFeathers = guiVars.numFeathers;
     objLoader.load('/geo/feather.obj', function(obj) {
         for (var i = 0; i < numFeathers; i++) {
             // LOOK: This function runs after the obj has finished loading
             var featherGeo = obj.children[0].geometry;
             
             // Wing material: color interpolation
-            var interpolateFactor = linearInterpolate(1, 0, i/numFeathers);
+            var interpolateColorR = linearInterpolate(guiVars.featherColorR_start, guiVars.featherColorR_end, i/numFeathers);
+            var interpolateColorG = linearInterpolate(guiVars.featherColorG_start, guiVars.featherColorG_end, i/numFeathers);
+            var interpolateColorB = linearInterpolate(guiVars.featherColorB_start, guiVars.featherColorB_end, i/numFeathers);
             var featherMaterial = new THREE.MeshPhongMaterial();
-            featherMaterial.color.setRGB(interpolateFactor, 1, 1);
+            featherMaterial.color.setRGB(interpolateColorR, interpolateColorG, interpolateColorB);
 
             var rightFeatherMesh = new THREE.Mesh(featherGeo, featherMaterial);
             rightFeatherMesh.name = "rightFeather" + i;
@@ -125,7 +167,7 @@ function createWings(numFeathers, scene, rightWingObject, leftWingObject) {
             leftFeatherMesh.name = "leftFeather" + i;
 
             // scale interpolation
-            var scaleAmt = linearInterpolate(0.25, 1.0, i/numFeathers);
+            var scaleAmt = linearInterpolate(0.25 * guiVars.featherSize, guiVars.featherSize, i/numFeathers);
             rightFeatherMesh.scale.x = scaleAmt;
             rightFeatherMesh.scale.y = scaleAmt;
             rightFeatherMesh.scale.z = scaleAmt;
@@ -154,16 +196,16 @@ function createWings(numFeathers, scene, rightWingObject, leftWingObject) {
     });
 }
 
-function flutterWings(numFeathers, scene) {
-    for (var i = 0; i < numFeathers; i++) {
+function flutterWings(scene) {
+    for (var i = 0; i < guiVars.numFeathers; i++) {
         var random = getRandomInt(0,2);
         var date = new Date();
         var rightFeather = scene.getObjectByName("rightFeather"+i);
         var leftFeather = scene.getObjectByName("leftFeather"+i);
         if (leftFeather !== undefined && rightFeather !== undefined) {
             if (random === 0) {
-                rightFeather.rotateX(Math.sin(date.getTime() / 100) * windForce.windStrength * Math.PI / 1800);
-                leftFeather.rotateX(Math.sin(date.getTime() / 100) * windForce.windStrength * Math.PI / 1800);        
+                rightFeather.rotateX(Math.sin(date.getTime() / 100) * guiVars.windStrength * Math.PI / 1800);
+                leftFeather.rotateX(Math.sin(date.getTime() / 100) * guiVars.windStrength * Math.PI / 1800);        
             }
         } 
     }
@@ -171,7 +213,7 @@ function flutterWings(numFeathers, scene) {
 
 // called on frame updates
 function onUpdate(framework) {
-    flutterWings(numFeathers, framework.scene);
+    flutterWings(framework.scene);
 }
 
 // when the scene is done initializing, it will call onLoad, then on frame updates, call onUpdate
