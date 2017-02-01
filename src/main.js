@@ -4,13 +4,14 @@
 const THREE = require('three'); // older modules are imported like this. You shouldn't have to worry about this much
 import Framework from './framework'
 
-function linearInterpolate(a, b, t) {
-    return a * (1 - t) + b * t;
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function cosineInterpolate(a, b, t) {
-    var cos_t = (1 - Math.cos(t * Math.PI)) * 0.5;
-    return linearInterpolate(a, b, cos_t);
+function linearInterpolate(a, b, t) {
+    return a * (1 - t) + b * t;
 }
 
 function degreesToRads(degrees) {
@@ -21,7 +22,7 @@ var xAxis = new THREE.Vector3(1,0,0);
 var yAxis = new THREE.Vector3(0,1,0);
 var zAxis = new THREE.Vector3(0,0,1);
 var numFeathers = 45;
-var windForce = 10;
+var windForce = {windStrength: 3.0};
 
 // called after the scene loads
 function onLoad(framework) {
@@ -91,6 +92,9 @@ function onLoad(framework) {
     gui.add(camera, 'fov', 0, 180).onChange(function(newVal) {
         camera.updateProjectionMatrix();
     });
+    gui.add(windForce, 'windStrength', 0, 20).onChange(function(newVal) {
+        
+    });
 }
 
 function removeWings(numFeathers, scene) {
@@ -152,12 +156,15 @@ function createWings(numFeathers, scene, rightWingObject, leftWingObject) {
 
 function flutterWings(numFeathers, scene) {
     for (var i = 0; i < numFeathers; i++) {
+        var random = getRandomInt(0,2);
         var date = new Date();
         var rightFeather = scene.getObjectByName("rightFeather"+i);
         var leftFeather = scene.getObjectByName("leftFeather"+i);
         if (leftFeather !== undefined && rightFeather !== undefined) {
-            rightFeather.rotateY(Math.sin(date.getTime() / 100) * 2 * Math.PI / 1800);
-            leftFeather.rotateY(Math.sin(date.getTime() / 100) * 2 * Math.PI / 1800);  
+            if (random === 0) {
+                rightFeather.rotateX(Math.sin(date.getTime() / 100) * windForce.windStrength * Math.PI / 1800);
+                leftFeather.rotateX(Math.sin(date.getTime() / 100) * windForce.windStrength * Math.PI / 1800);        
+            }
         } 
     }
 }
