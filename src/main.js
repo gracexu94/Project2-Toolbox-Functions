@@ -4,6 +4,19 @@
 const THREE = require('three'); // older modules are imported like this. You shouldn't have to worry about this much
 import Framework from './framework'
 
+function linearInterpolate(a, b, t) {
+    return a * (1 - t) + b * t;
+}
+
+function cosineInterpolate(a, b, t) {
+    var cos_t = (1 - Math.cos(t * Math.PI)) * 0.5;
+    return linearInterpolate(a, b, cos_t);
+}
+
+function degreesToRads(degrees) {
+    return Math.PI / 180.0 * degrees;
+}
+
 // called after the scene loads
 function onLoad(framework) {
     var scene = framework.scene;
@@ -32,20 +45,43 @@ function onLoad(framework) {
     ] );
 
     scene.background = skymap;
+    var curve = new THREE.CubicBezierCurve3(
+        new THREE.Vector3( 0, 0, 0 ),
+        new THREE.Vector3( 1, 0.75, 0 ),
+        new THREE.Vector3( 2, 3, 0 ),
+        new THREE.Vector3( 5, 2, 0 )
+    );
+
+    var geometry = new THREE.Geometry();
+    geometry.vertices = curve.getPoints( 50 );
+
+    var material = new THREE.LineBasicMaterial( { color : 0xff0000 } );
+
+    // Create the final object to add to the scene
+    var curveObject = new THREE.Line( geometry, material );
+    scene.add(curveObject);
 
     // load a simple obj mesh
     var objLoader = new THREE.OBJLoader();
     objLoader.load('/geo/feather.obj', function(obj) {
-
-        for (var i = 0; i < 20; i++) {
+        for (var i = 0; i < geometry.vertices.length; i++) {
             // LOOK: This function runs after the obj has finished loading
             var featherGeo = obj.children[0].geometry;
-
             var featherMesh = new THREE.Mesh(featherGeo, lambertWhite);
             featherMesh.name = "feather" + i;
+            var scaleAmt = linearInterpolate(0.25, 1.0, i/geometry.vertices.length);
+            featherMesh.scale.x = scaleAmt;
+            featherMesh.scale.y = scaleAmt;
+            featherMesh.scale.z = scaleAmt;
+
             scene.add(featherMesh);
             var feather = framework.scene.getObjectByName(featherMesh.name);
-            feather.rotateY(i);  
+            feather.position.set(geometry.vertices[i].x,geometry.vertices[i].y,geometry.vertices[i].z);
+            
+            var yRotateAmt = linearInterpolate(80, 90, i/geometry.vertices.length);
+            feather.rotateY(degreesToRads(yRotateAmt));
+            var zRotateAmt = linearInterpolate(270, 0, i/geometry.vertices.length);
+            feather.rotateZ(degreesToRads(zRotateAmt));
         }
     });
 
@@ -55,6 +91,41 @@ function onLoad(framework) {
 
     // scene.add(lambertCube);
     scene.add(directionalLight);
+
+    function buildAxes( length ) {
+        var axes = new THREE.Object3D();
+
+        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0xFF0000, false ) ); // +X
+        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0xFF0000, true) ); // -X
+        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x00FF00, false ) ); // +Y
+        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x00FF00, true ) ); // -Y
+        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x0000FF, false ) ); // +Z
+        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x0000FF, true ) ); // -Z
+
+        return axes;
+
+    }
+    function buildAxis( src, dst, colorHex, dashed ) {
+            var geom = new THREE.Geometry(),
+                mat; 
+
+            if(dashed) {
+                    mat = new THREE.LineDashedMaterial({ linewidth: 3, color: colorHex, dashSize: 3, gapSize: 3 });
+            } else {
+                    mat = new THREE.LineBasicMaterial({ linewidth: 3, color: colorHex });
+            }
+
+            geom.vertices.push( src.clone() );
+            geom.vertices.push( dst.clone() );
+            geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
+
+            var axis = new THREE.Line( geom, mat, THREE.LinePieces );
+
+            return axis;
+
+    }
+
+    scene.add(buildAxes(1));
 
     // edit params and listen to changes like this
     // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
@@ -69,7 +140,7 @@ function onUpdate(framework) {
     if (feather !== undefined) {
         // Simply flap wing
         var date = new Date();
-        //feather.rotateZ(Math.sin(date.getTime() / 100) * 2 * Math.PI / 180);        
+        feather.rotateZ(Math.sin(date.getTime() / 100) * 2 * Math.PI / 180);        
     }
 }
 
