@@ -29,8 +29,7 @@ function onLoad(framework) {
     var gui = framework.gui;
     var stats = framework.stats;
 
-    // Basic Lambert white
-    var lambertWhite = new THREE.MeshLambertMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide });
+
 
     // Set light
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
@@ -59,7 +58,7 @@ function onLoad(framework) {
     var geometry = new THREE.Geometry();
     geometry.vertices = curve.getPoints(45);
 
-    var material = new THREE.LineBasicMaterial( { color : 0xff0000 } );
+    var material = new THREE.LineBasicMaterial();
 
     // Create the final object to add to the scene
     var curveObject = new THREE.Line( geometry, material );
@@ -71,21 +70,27 @@ function onLoad(framework) {
         for (var i = 0; i < geometry.vertices.length; i++) {
             // LOOK: This function runs after the obj has finished loading
             var featherGeo = obj.children[0].geometry;
-            var featherMesh = new THREE.Mesh(featherGeo, lambertWhite);
+            // Wing material
+            // interpolates between #5e4fa2, #d1836b
+            var interpolateFactor = linearInterpolate(1, 0, i/geometry.vertices.length);
+            var featherMaterial = new THREE.MeshPhongMaterial();
+            featherMaterial.color.setRGB(interpolateFactor, 1, 1);
+            console.log(featherMaterial);
+
+            var featherMesh = new THREE.Mesh(featherGeo, featherMaterial);
             featherMesh.name = "feather" + i;
             var scaleAmt = linearInterpolate(0.25, 1.0, i/geometry.vertices.length);
             featherMesh.scale.x = scaleAmt;
             featherMesh.scale.y = scaleAmt;
             featherMesh.scale.z = scaleAmt;
 
-            scene.add(featherMesh);
-            var feather = framework.scene.getObjectByName(featherMesh.name);
-            feather.position.set(geometry.vertices[i].x,geometry.vertices[i].y,geometry.vertices[i].z);
-            
+            featherMesh.position.set(geometry.vertices[i].x,geometry.vertices[i].y,geometry.vertices[i].z);
             var zRotateAmt = linearInterpolate(270, 360, i/geometry.vertices.length);
-            feather.rotateOnAxis(zAxis, degreesToRads(zRotateAmt));            
+            featherMesh.rotateOnAxis(zAxis, degreesToRads(zRotateAmt));            
             var xRotateAmt = linearInterpolate(80, 90, i/geometry.vertices.length);
-            feather.rotateOnAxis(xAxis, degreesToRads(xRotateAmt));
+            featherMesh.rotateOnAxis(xAxis, degreesToRads(xRotateAmt));
+
+            scene.add(featherMesh);
         }
     });
 
@@ -95,41 +100,6 @@ function onLoad(framework) {
 
     // scene.add(lambertCube);
     scene.add(directionalLight);
-
-    function buildAxes( length ) {
-        var axes = new THREE.Object3D();
-
-        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0xFF0000, false ) ); // +X
-        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0xFF0000, true) ); // -X
-        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x00FF00, false ) ); // +Y
-        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x00FF00, true ) ); // -Y
-        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x0000FF, false ) ); // +Z
-        axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x0000FF, true ) ); // -Z
-
-        return axes;
-
-    }
-    function buildAxis( src, dst, colorHex, dashed ) {
-            var geom = new THREE.Geometry(),
-                mat; 
-
-            if(dashed) {
-                    mat = new THREE.LineDashedMaterial({ linewidth: 3, color: colorHex, dashSize: 3, gapSize: 3 });
-            } else {
-                    mat = new THREE.LineBasicMaterial({ linewidth: 3, color: colorHex });
-            }
-
-            geom.vertices.push( src.clone() );
-            geom.vertices.push( dst.clone() );
-            geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
-
-            var axis = new THREE.Line( geom, mat, THREE.LinePieces );
-
-            return axis;
-
-    }
-
-    scene.add(buildAxes(1));
 
     // edit params and listen to changes like this
     // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
