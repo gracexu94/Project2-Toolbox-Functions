@@ -17,6 +17,10 @@ function degreesToRads(degrees) {
     return Math.PI / 180.0 * degrees;
 }
 
+var xAxis = new THREE.Vector3(1,0,0);
+var yAxis = new THREE.Vector3(0,1,0);
+var zAxis = new THREE.Vector3(0,0,1);
+
 // called after the scene loads
 function onLoad(framework) {
     var scene = framework.scene;
@@ -53,7 +57,7 @@ function onLoad(framework) {
     );
 
     var geometry = new THREE.Geometry();
-    geometry.vertices = curve.getPoints( 50 );
+    geometry.vertices = curve.getPoints(45);
 
     var material = new THREE.LineBasicMaterial( { color : 0xff0000 } );
 
@@ -78,10 +82,10 @@ function onLoad(framework) {
             var feather = framework.scene.getObjectByName(featherMesh.name);
             feather.position.set(geometry.vertices[i].x,geometry.vertices[i].y,geometry.vertices[i].z);
             
-            var yRotateAmt = linearInterpolate(80, 90, i/geometry.vertices.length);
-            feather.rotateY(degreesToRads(yRotateAmt));
-            var zRotateAmt = linearInterpolate(270, 0, i/geometry.vertices.length);
-            feather.rotateZ(degreesToRads(zRotateAmt));
+            var zRotateAmt = linearInterpolate(270, 360, i/geometry.vertices.length);
+            feather.rotateOnAxis(zAxis, degreesToRads(zRotateAmt));            
+            var xRotateAmt = linearInterpolate(80, 90, i/geometry.vertices.length);
+            feather.rotateOnAxis(xAxis, degreesToRads(xRotateAmt));
         }
     });
 
