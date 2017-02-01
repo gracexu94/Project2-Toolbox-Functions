@@ -22,6 +22,10 @@ var xAxis = new THREE.Vector3(1,0,0);
 var yAxis = new THREE.Vector3(0,1,0);
 var zAxis = new THREE.Vector3(0,0,1);
 var guiVars = {
+            flapWing: true,
+            flapStrength: 1.0,
+            flapSpeed: 100.0,
+            flapMotion: 'sin',
             leftWingCurve_startPtX: -0.1,
             leftWingCurve_startPtY: 0.0,
             leftWingCurve_startPtZ: 0.0,
@@ -50,9 +54,9 @@ var guiVars = {
             windStrength: 3.0, 
             featherSize: 1.0, 
             featherColorR_start: 0.0,
-            featherColorG_start: 1.0,
+            featherColorG_start: 0.5,
             featherColorB_start: 1.0,
-            featherColorR_end: 1.0,
+            featherColorR_end: 0.5,
             featherColorG_end: 1.0,
             featherColorB_end: 1.0,
             xRotationLocal_degrees: 0.0,
@@ -130,7 +134,11 @@ function onLoad(framework) {
     gui.add(camera, 'fov', 0, 180).onChange(function(newVal) {
         camera.updateProjectionMatrix();
     });
-    gui.add(guiVars, 'windStrength', 0, 20).onChange(function(newVal) {});
+    gui.add(guiVars, 'flapWing');
+    gui.add(guiVars, 'flapStrength', 0.0, 50.0);
+    gui.add(guiVars, 'flapSpeed', 50, 500.0);
+    gui.add(guiVars, 'flapMotion', ['cosine', 'sin']);
+    gui.add(guiVars, 'windStrength', 0, 20);
     gui.add(guiVars, 'numFeathers', 20, 100).onChange(function(newVal) {
         removeWings(framework.scene);
         rightWingObject.geometry.vertices = rightWing.getPoints(newVal);
@@ -458,6 +466,25 @@ function flutterWings(scene) {
 
 // called on frame updates
 function onUpdate(framework) {
+    if (guiVars.flapWing) {
+        removeWings(framework.scene);
+        var date = new Date();
+        var flapAmt = 0; 
+        if (guiVars.flapMotion === 'sin') {
+            flapAmt = Math.sin(date.getTime() / guiVars.flapSpeed) * Math.PI;
+        } else if (guiVars.flapMotion === 'cosine') {
+            flapAmt = Math.cos(date.getTime() / guiVars.flapSpeed) * Math.PI;
+        }
+      
+        guiVars.leftWingCurve_Pt2Z = (flapAmt < 0) ? 0.0 : flapAmt;
+        guiVars.rightWingCurve_Pt2Z = (flapAmt < 0) ? 0.0 : flapAmt;
+        guiVars.leftWingCurve_endPtZ =  flapAmt * guiVars.flapStrength;
+        guiVars.rightWingCurve_endPtZ = flapAmt * guiVars.flapStrength;
+
+        var updatedLeftWing = updateLeftWingCurve(framework.scene);
+        var updatedRightWing = updateRightWingCurve(framework.scene);
+        createWings(framework.scene, updatedRightWing, updatedLeftWing);
+    }
     flutterWings(framework.scene);
 }
 
