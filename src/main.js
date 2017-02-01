@@ -21,6 +21,7 @@ var xAxis = new THREE.Vector3(1,0,0);
 var yAxis = new THREE.Vector3(0,1,0);
 var zAxis = new THREE.Vector3(0,0,1);
 var numFeathers = 45;
+var windForce = 10;
 
 // called after the scene loads
 function onLoad(framework) {
@@ -78,7 +79,7 @@ function onLoad(framework) {
     leftWingObject.name = "leftWingCurve";
     scene.add(leftWingObject);
 
-    createWings(numFeathers, scene, rightWing, leftWing);
+    createWings(numFeathers, scene, rightWingObject, leftWingObject);
 
     // set camera position
     camera.position.set(0, 1, 5);
@@ -101,7 +102,7 @@ function removeWings(numFeathers, scene) {
     }
 }
 
-function createWings(numFeathers, scene, rightWingCurve, leftWingCurve) {
+function createWings(numFeathers, scene, rightWingObject, leftWingObject) {
     // load a simple obj mesh multiple times to create the feathers for the wings
     var objLoader = new THREE.OBJLoader();
     objLoader.load('/geo/feather.obj', function(obj) {
@@ -129,9 +130,7 @@ function createWings(numFeathers, scene, rightWingCurve, leftWingCurve) {
             leftFeatherMesh.scale.z = scaleAmt;
 
             // orientation interpolation
-            var rightWing = scene.getObjectByName("rightWingCurve");
-            var rightWingGeom = rightWing.geometry;
-            rightWingGeom.vertices = rightWingCurve.getPoints(numFeathers);
+            var rightWingGeom = rightWingObject.geometry;
             rightFeatherMesh.position.set(rightWingGeom.vertices[i].x,rightWingGeom.vertices[i].y,rightWingGeom.vertices[i].z);
             var zRotateAmt = linearInterpolate(270, 360, i/numFeathers);
             rightFeatherMesh.rotateOnAxis(zAxis, degreesToRads(zRotateAmt));            
@@ -139,9 +138,7 @@ function createWings(numFeathers, scene, rightWingCurve, leftWingCurve) {
             rightFeatherMesh.rotateOnAxis(xAxis, degreesToRads(xRotateAmt));
             //rightFeatherMesh.rotateZ(degreesToRads(90));
 
-            var leftWing = scene.getObjectByName("leftWingCurve");
-            var leftWingGeom = leftWing.geometry;
-            leftWingGeom.vertices = leftWingCurve.getPoints(numFeathers);
+            var leftWingGeom = leftWingObject.geometry;
             leftFeatherMesh.position.set(leftWingGeom.vertices[i].x,leftWingGeom.vertices[i].y,leftWingGeom.vertices[i].z);
             zRotateAmt = linearInterpolate(270, 180, i/numFeathers);
             leftFeatherMesh.rotateOnAxis(zAxis, degreesToRads(zRotateAmt));            
@@ -157,30 +154,17 @@ function flutterWings(numFeathers, scene) {
     for (var i = 0; i < numFeathers; i++) {
         var date = new Date();
         var rightFeather = scene.getObjectByName("rightFeather"+i);
-        rightFeather.rotateZ(Math.sin(date.getTime() / 100) * 2 * Math.PI / 1800);
         var leftFeather = scene.getObjectByName("leftFeather"+i);
-        //leftFeather.rotateY(Math.sin(date.getTime() / 100) * 2 * Math.PI / 1800);   
+        if (leftFeather !== undefined && rightFeather !== undefined) {
+            rightFeather.rotateY(Math.sin(date.getTime() / 100) * 2 * Math.PI / 1800);
+            leftFeather.rotateY(Math.sin(date.getTime() / 100) * 2 * Math.PI / 1800);  
+        } 
     }
 }
 
 // called on frame updates
 function onUpdate(framework) {
-    removeWings(numFeathers, framework.scene);
-    //right wing
-    var rightWing = new THREE.CubicBezierCurve3(
-        new THREE.Vector3( 0.1, 0, 0 ),
-        new THREE.Vector3( 1, 0.75, 0 ),
-        new THREE.Vector3( 2, 3, 0 ),
-        new THREE.Vector3( 5, 2, 0 )
-    );
-
-     var leftWing = new THREE.CubicBezierCurve3(
-        new THREE.Vector3( -0.1, 0, 0 ),
-        new THREE.Vector3( -1, 0.75, 0 ),
-        new THREE.Vector3( -2, 3, 0 ),
-        new THREE.Vector3( -5, 2, 0 )
-    );
-    createWings(numFeathers, framework.scene, rightWing, leftWing);
+    flutterWings(numFeathers, framework.scene);
 }
 
 // when the scene is done initializing, it will call onLoad, then on frame updates, call onUpdate
