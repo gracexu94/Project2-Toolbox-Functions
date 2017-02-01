@@ -24,7 +24,7 @@ var zAxis = new THREE.Vector3(0,0,1);
 var guiVars = {
             flapWing: true,
             flapStrength: 1.0,
-            flapSpeed: 100.0,
+            flapSpeed: 200.0,
             flapMotion: 'sin',
             leftWingCurve_startPtX: -0.1,
             leftWingCurve_startPtY: 0.0,
@@ -134,10 +134,6 @@ function onLoad(framework) {
     gui.add(camera, 'fov', 0, 180).onChange(function(newVal) {
         camera.updateProjectionMatrix();
     });
-    gui.add(guiVars, 'flapWing');
-    gui.add(guiVars, 'flapStrength', 0.0, 50.0);
-    gui.add(guiVars, 'flapSpeed', 50, 500.0);
-    gui.add(guiVars, 'flapMotion', ['cosine', 'sin']);
     gui.add(guiVars, 'windStrength', 0, 20);
     gui.add(guiVars, 'numFeathers', 20, 100).onChange(function(newVal) {
         removeWings(framework.scene);
@@ -149,6 +145,12 @@ function onLoad(framework) {
         removeWings(framework.scene);
         createWings(framework.scene, rightWingObject, leftWingObject);
     });
+
+    var flapControls = gui.addFolder('Flapping controls');
+    flapControls.add(guiVars, 'flapWing');
+    flapControls.add(guiVars, 'flapStrength', 0.0, 50.0);
+    flapControls.add(guiVars, 'flapSpeed', 50, 500.0);
+    flapControls.add(guiVars, 'flapMotion', ['cosine', 'sin']);
 
     var rightCurveFolder = gui.addFolder('Right wing curve controls');
     rightCurveFolder.add(guiVars, 'rightWingCurve_startPtX', -10.0, 10.0).onChange(function(newVal) {
