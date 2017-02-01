@@ -20,6 +20,7 @@ function degreesToRads(degrees) {
 var xAxis = new THREE.Vector3(1,0,0);
 var yAxis = new THREE.Vector3(0,1,0);
 var zAxis = new THREE.Vector3(0,0,1);
+var numFeathers = 45;
 
 // called after the scene loads
 function onLoad(framework) {
@@ -46,8 +47,8 @@ function onLoad(framework) {
     ] );
 
     scene.background = skymap;
+    
     var lineMaterial = new THREE.LineBasicMaterial();
-    var numFeathers = 45;
     //right wing
     var rightWing = new THREE.CubicBezierCurve3(
         new THREE.Vector3( 0.1, 0, 0 ),
@@ -58,10 +59,11 @@ function onLoad(framework) {
 
     var rightWingGeom = new THREE.Geometry();
     rightWingGeom.vertices = rightWing.getPoints(numFeathers);
-    var rightWingObject = new THREE.Line(rightWingGeom, lineMaterial );
+    var rightWingObject = new THREE.Line(rightWingGeom, lineMaterial);
+    rightWingObject.name = "rightWingCurve";
     scene.add(rightWingObject);
 
-    //legt wing
+    //left wing
     var leftWing = new THREE.CubicBezierCurve3(
         new THREE.Vector3( -0.1, 0, 0 ),
         new THREE.Vector3( -1, 0.75, 0 ),
@@ -72,11 +74,35 @@ function onLoad(framework) {
     var leftWingGeom = new THREE.Geometry();
     leftWingGeom.vertices = leftWing.getPoints(numFeathers);
 
-    // Create the final object to add to the scene
     var leftWingObject = new THREE.Line(leftWingGeom, lineMaterial);
+    leftWingObject.name = "leftWingCurve";
     scene.add(leftWingObject);
 
-    // load a simple obj mesh
+    createWings(numFeathers, scene, rightWing, leftWing);
+
+    // set camera position
+    camera.position.set(0, 1, 5);
+    camera.lookAt(new THREE.Vector3(0,0,0));
+    scene.add(directionalLight);
+
+    // edit params and listen to changes like this
+    // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
+    gui.add(camera, 'fov', 0, 180).onChange(function(newVal) {
+        camera.updateProjectionMatrix();
+    });
+}
+
+function removeWings(numFeathers, scene) {
+    for (var i = 0; i < numFeathers; i++) {
+        var rightFeather = scene.getObjectByName("rightFeather"+i);
+        scene.remove(rightFeather);
+        var leftFeather = scene.getObjectByName("leftFeather"+i);
+        scene.remove(leftFeather);
+    }
+}
+
+function createWings(numFeathers, scene, rightWingCurve, leftWingCurve) {
+    // load a simple obj mesh multiple times to create the feathers for the wings
     var objLoader = new THREE.OBJLoader();
     objLoader.load('/geo/feather.obj', function(obj) {
         for (var i = 0; i < numFeathers; i++) {
@@ -103,6 +129,9 @@ function onLoad(framework) {
             leftFeatherMesh.scale.z = scaleAmt;
 
             // orientation interpolation
+            var rightWing = scene.getObjectByName("rightWingCurve");
+            var rightWingGeom = rightWing.geometry;
+            rightWingGeom.vertices = rightWingCurve.getPoints(numFeathers);
             rightFeatherMesh.position.set(rightWingGeom.vertices[i].x,rightWingGeom.vertices[i].y,rightWingGeom.vertices[i].z);
             var zRotateAmt = linearInterpolate(270, 360, i/numFeathers);
             rightFeatherMesh.rotateOnAxis(zAxis, degreesToRads(zRotateAmt));            
@@ -110,6 +139,9 @@ function onLoad(framework) {
             rightFeatherMesh.rotateOnAxis(xAxis, degreesToRads(xRotateAmt));
             //rightFeatherMesh.rotateZ(degreesToRads(90));
 
+            var leftWing = scene.getObjectByName("leftWingCurve");
+            var leftWingGeom = leftWing.geometry;
+            leftWingGeom.vertices = leftWingCurve.getPoints(numFeathers);
             leftFeatherMesh.position.set(leftWingGeom.vertices[i].x,leftWingGeom.vertices[i].y,leftWingGeom.vertices[i].z);
             zRotateAmt = linearInterpolate(270, 180, i/numFeathers);
             leftFeatherMesh.rotateOnAxis(zAxis, degreesToRads(zRotateAmt));            
@@ -119,29 +151,36 @@ function onLoad(framework) {
             scene.add(leftFeatherMesh);
         }
     });
+}
 
-    // set camera position
-    camera.position.set(0, 1, 5);
-    camera.lookAt(new THREE.Vector3(0,0,0));
-
-    // scene.add(lambertCube);
-    scene.add(directionalLight);
-
-    // edit params and listen to changes like this
-    // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
-    gui.add(camera, 'fov', 0, 180).onChange(function(newVal) {
-        camera.updateProjectionMatrix();
-    });
+function flutterWings(numFeathers, scene) {
+    for (var i = 0; i < numFeathers; i++) {
+        var date = new Date();
+        var rightFeather = scene.getObjectByName("rightFeather"+i);
+        rightFeather.rotateZ(Math.sin(date.getTime() / 100) * 2 * Math.PI / 1800);
+        var leftFeather = scene.getObjectByName("leftFeather"+i);
+        //leftFeather.rotateY(Math.sin(date.getTime() / 100) * 2 * Math.PI / 1800);   
+    }
 }
 
 // called on frame updates
 function onUpdate(framework) {
-    var feather = framework.scene.getObjectByName("feather");    
-    if (feather !== undefined) {
-        // Simply flap wing
-        var date = new Date();
-        feather.rotateZ(Math.sin(date.getTime() / 100) * 2 * Math.PI / 180);        
-    }
+    removeWings(numFeathers, framework.scene);
+    //right wing
+    var rightWing = new THREE.CubicBezierCurve3(
+        new THREE.Vector3( 0.1, 0, 0 ),
+        new THREE.Vector3( 1, 0.75, 0 ),
+        new THREE.Vector3( 2, 3, 0 ),
+        new THREE.Vector3( 5, 2, 0 )
+    );
+
+     var leftWing = new THREE.CubicBezierCurve3(
+        new THREE.Vector3( -0.1, 0, 0 ),
+        new THREE.Vector3( -1, 0.75, 0 ),
+        new THREE.Vector3( -2, 3, 0 ),
+        new THREE.Vector3( -5, 2, 0 )
+    );
+    createWings(numFeathers, framework.scene, rightWing, leftWing);
 }
 
 // when the scene is done initializing, it will call onLoad, then on frame updates, call onUpdate
